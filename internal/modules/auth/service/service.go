@@ -10,13 +10,13 @@ import (
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 
-	"rentos/internal/modules/auth/dto/request"
-	"rentos/internal/modules/auth/dto/response"
-	"rentos/internal/modules/auth/entity"
-	"rentos/internal/modules/auth/repository"
-	"rentos/pkg/jwt"
-	"rentos/pkg/password"
-	pkgresponse "rentos/pkg/response"
+	"rentos-backend/internal/modules/auth/dto/request"
+	"rentos-backend/internal/modules/auth/dto/response"
+	"rentos-backend/internal/modules/auth/entity"
+	"rentos-backend/internal/modules/auth/repository"
+	"rentos-backend/pkg/jwt"
+	"rentos-backend/pkg/password"
+	pkgresponse "rentos-backend/pkg/response"
 )
 
 const (
@@ -30,10 +30,10 @@ const (
 // ============================================================
 
 type authService struct {
-	db       *sqlx.DB
-	users    repository.UserRepository
+	db      *sqlx.DB
+	users   repository.UserRepository
 	sessions repository.SessionRepository
-	jwt      *jwt.Service
+	jwt     *jwt.Service
 }
 
 func NewAuthService(
@@ -232,9 +232,9 @@ func (s *userService) Delete(ctx context.Context, id, tenantID string) error {
 // ============================================================
 
 type passwordService struct {
-	db     *sqlx.DB
-	users  repository.UserRepository
-	resets repository.PasswordResetRepository
+	db       *sqlx.DB
+	users    repository.UserRepository
+	resets   repository.PasswordResetRepository
 }
 
 func NewPasswordService(

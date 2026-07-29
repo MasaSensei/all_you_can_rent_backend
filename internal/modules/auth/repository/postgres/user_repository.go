@@ -6,9 +6,9 @@ import (
 	"errors"
 	"fmt"
 
-	"rentos/internal/modules/auth/entity"
-	"rentos/internal/modules/auth/repository"
-	"rentos/pkg/database"
+	"rentos-backend/internal/modules/auth/entity"
+	"rentos-backend/internal/modules/auth/repository"
+	"rentos-backend/pkg/database"
 )
 
 type userRepository struct {

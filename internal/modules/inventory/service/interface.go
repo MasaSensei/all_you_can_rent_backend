@@ -8,9 +8,9 @@ import (
 	"context"
 	"time"
 
-	"rentos/internal/modules/inventory/dto/request"
-	"rentos/internal/modules/inventory/dto/response"
-	"rentos/internal/modules/inventory/entity"
+	"rentos-backend/internal/modules/inventory/dto/request"
+	"rentos-backend/internal/modules/inventory/dto/response"
+	"rentos-backend/internal/modules/inventory/entity"
 )
 
 // CategoryService manages the category hierarchy.

@@ -3,7 +3,7 @@ package routes
 import (
 	"github.com/gofiber/fiber/v2"
 
-	"rentos/internal/modules/auth/handler"
+	"rentos-backend/internal/modules/auth/handler"
 )
 
 // Register mounts auth and user routes under /api/v1.

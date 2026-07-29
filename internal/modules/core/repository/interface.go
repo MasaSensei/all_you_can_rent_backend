@@ -9,8 +9,8 @@ import (
 	"context"
 	"errors"
 
-	"rentos/internal/modules/core/entity"
-	"rentos/pkg/database"
+	"rentos-backend/internal/modules/core/entity"
+	"rentos-backend/pkg/database"
 )
 
 // ErrNotFound is returned by any repository implementation when a queried

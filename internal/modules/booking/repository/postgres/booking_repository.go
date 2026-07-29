@@ -7,9 +7,9 @@ import (
 	"fmt"
 	"time"
 
-	"rentos/internal/modules/booking/entity"
-	"rentos/internal/modules/booking/repository"
-	"rentos/pkg/database"
+	"rentos-backend/internal/modules/booking/entity"
+	"rentos-backend/internal/modules/booking/repository"
+	"rentos-backend/pkg/database"
 )
 
 // ============================================================
@@ -17,11 +17,11 @@ import (
 // ============================================================
 
 type bookingRepository struct {
-	qCreate       string
-	qFindByID     string
-	qList         string
-	qUpdateStatus string
-	qUpdateTotals string
+	qCreate        string
+	qFindByID      string
+	qList          string
+	qUpdateStatus  string
+	qUpdateTotals  string
 }
 
 func NewBookingRepository(qCreate, qFindByID, qList, qUpdateStatus, qUpdateTotals string) repository.BookingRepository {

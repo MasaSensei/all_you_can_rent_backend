@@ -5,8 +5,8 @@ import (
 	"context"
 	"errors"
 
-	"rentos/internal/modules/auth/entity"
-	"rentos/pkg/database"
+	"rentos-backend/internal/modules/auth/entity"
+	"rentos-backend/pkg/database"
 )
 
 // ErrNotFound is returned by any auth repository when a queried row

@@ -3,7 +3,7 @@ package routes
 import (
 	"github.com/gofiber/fiber/v2"
 
-	"rentos/internal/modules/rbac/handler"
+	"rentos-backend/internal/modules/rbac/handler"
 )
 
 // Register mounts RBAC routes under /api/v1.

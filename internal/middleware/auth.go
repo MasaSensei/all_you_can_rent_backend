@@ -5,8 +5,8 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 
-	"rentos/pkg/jwt"
-	apiresponse "rentos/pkg/response"
+	"rentos-backend/pkg/jwt"
+	apiresponse "rentos-backend/pkg/response"
 )
 
 const (

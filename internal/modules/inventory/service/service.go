@@ -8,12 +8,12 @@ import (
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 
-	"rentos/internal/modules/inventory/dto/request"
-	"rentos/internal/modules/inventory/dto/response"
-	"rentos/internal/modules/inventory/entity"
-	"rentos/internal/modules/inventory/repository"
-	pkgresponse "rentos/pkg/response"
-	"rentos/pkg/transaction"
+	"rentos-backend/internal/modules/inventory/dto/request"
+	"rentos-backend/internal/modules/inventory/dto/response"
+	"rentos-backend/internal/modules/inventory/entity"
+	"rentos-backend/internal/modules/inventory/repository"
+	pkgresponse "rentos-backend/pkg/response"
+	"rentos-backend/pkg/transaction"
 )
 
 // ============================================================
@@ -66,7 +66,7 @@ func (s *categoryService) Update(ctx context.Context, id, tenantID, actorID stri
 	c := &entity.Category{
 		ID:          id,
 		TenantID:    tenantID,
-		Name:        derefStr(req.Name),
+		Name:        req.Name,
 		Description: req.Description,
 		Icon:        req.Icon,
 		SortOrder:   derefInt(req.SortOrder),
@@ -174,7 +174,7 @@ func (s *assetTemplateService) List(ctx context.Context, tenantID string) ([]res
 }
 
 func (s *assetTemplateService) Update(ctx context.Context, id, tenantID, actorID string, req request.UpdateAssetTemplate) (*response.AssetTemplate, error) {
-	t := &entity.AssetTemplate{ID: id, TenantID: tenantID, Name: derefStr(req.Name), Description: req.Description, UpdatedBy: &actorID}
+	t := &entity.AssetTemplate{ID: id, TenantID: tenantID, Name: req.Name, Description: req.Description, UpdatedBy: &actorID}
 	if err := s.templates.Update(ctx, s.db, t); err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
 			return nil, pkgresponse.NewAppError(pkgresponse.CodeNotFound, "asset template not found")
@@ -307,7 +307,7 @@ func (s *assetService) Update(ctx context.Context, id, tenantID, actorID string,
 	a := &entity.Asset{
 		ID:               id,
 		TenantID:         tenantID,
-		Name:             derefStr(req.Name),
+		Name:             req.Name,
 		Description:      req.Description,
 		Condition:        derefStr(req.Condition),
 		Location:         req.Location,

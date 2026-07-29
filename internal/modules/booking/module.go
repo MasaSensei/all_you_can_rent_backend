@@ -3,11 +3,11 @@ package booking
 import (
 	"github.com/gofiber/fiber/v2"
 
-	"rentos/internal/bootstrap"
-	"rentos/internal/modules/booking/handler"
-	"rentos/internal/modules/booking/repository/postgres"
-	"rentos/internal/modules/booking/routes"
-	"rentos/internal/modules/booking/service"
+	"rentos-backend/internal/bootstrap"
+	"rentos-backend/internal/modules/booking/handler"
+	"rentos-backend/internal/modules/booking/repository/postgres"
+	"rentos-backend/internal/modules/booking/routes"
+	"rentos-backend/internal/modules/booking/service"
 )
 
 // Module holds the booking module's wired handler.
@@ -15,11 +15,16 @@ type Module struct {
 	handler *handler.Handler
 }
 
-// New builds the booking module. It receives an InventoryChecker (from
-// the inventory module) so the booking service can validate asset
-// availability without importing the inventory package directly.
-// A PassthroughPricer is used until Phase 5 (pricing module) is wired.
-func New(c *bootstrap.Container, inventory service.InventoryChecker) *Module {
+// New builds the booking module.
+//
+//   - inventory satisfies service.InventoryChecker
+//     (injected from inventory.Module.AssetService())
+//   - pricing satisfies service.PricingQuoter
+//     (injected from pricing.Module.PricingQuoter())
+//
+// Both are interface parameters — booking never imports inventory or
+// pricing concrete packages.
+func New(c *bootstrap.Container, inventory service.InventoryChecker, pricing service.PricingQuoter) *Module {
 	bookingRepo := postgres.NewBookingRepository(
 		query("create_booking.sql"),
 		query("find_booking_by_id.sql"),
@@ -43,11 +48,8 @@ func New(c *bootstrap.Container, inventory service.InventoryChecker) *Module {
 		query("list_booking_returns.sql"),
 	)
 
-	// PassthroughPricer is replaced with the real PricingService in Phase 5.
-	pricer := &service.PassthroughPricer{}
-
-	bookingSvc := service.NewBookingService(c.DB, bookingRepo, itemRepo, inventory, pricer)
-	itemSvc := service.NewBookingItemService(c.DB, bookingRepo, itemRepo, extensionRepo, returnRepo, inventory, pricer)
+	bookingSvc := service.NewBookingService(c.DB, bookingRepo, itemRepo, inventory, pricing)
+	itemSvc := service.NewBookingItemService(c.DB, bookingRepo, itemRepo, extensionRepo, returnRepo, inventory, pricing)
 
 	h := handler.New(bookingSvc, itemSvc, c.Validator)
 	return &Module{handler: h}

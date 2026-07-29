@@ -3,12 +3,12 @@ package handler
 import (
 	"github.com/gofiber/fiber/v2"
 
-	authdto "rentos/internal/modules/auth/dto/request"
-	authresponse "rentos/internal/modules/auth/dto/response"
-	"rentos/internal/modules/auth/entity"
-	"rentos/internal/modules/auth/service"
-	apiresponse "rentos/pkg/response"
-	"rentos/pkg/validator"
+	authdto "rentos-backend/internal/modules/auth/dto/request"
+	authresponse "rentos-backend/internal/modules/auth/dto/response"
+	"rentos-backend/internal/modules/auth/entity"
+	"rentos-backend/internal/modules/auth/service"
+	apiresponse "rentos-backend/pkg/response"
+	"rentos-backend/pkg/validator"
 )
 
 // ctxKeyTenantID is the fiber.Ctx.Locals key set by TenantResolver middleware.

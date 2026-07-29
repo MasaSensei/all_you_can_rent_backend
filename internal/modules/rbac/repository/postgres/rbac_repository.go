@@ -9,9 +9,9 @@ import (
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 
-	"rentos/internal/modules/rbac/entity"
-	"rentos/internal/modules/rbac/repository"
-	"rentos/pkg/database"
+	"rentos-backend/internal/modules/rbac/entity"
+	"rentos-backend/internal/modules/rbac/repository"
+	"rentos-backend/pkg/database"
 )
 
 // ============================================================

@@ -3,11 +3,11 @@ package inventory
 import (
 	"github.com/gofiber/fiber/v2"
 
-	"rentos/internal/bootstrap"
-	"rentos/internal/modules/inventory/handler"
-	"rentos/internal/modules/inventory/repository/postgres"
-	"rentos/internal/modules/inventory/routes"
-	"rentos/internal/modules/inventory/service"
+	"rentos-backend/internal/bootstrap"
+	"rentos-backend/internal/modules/inventory/handler"
+	"rentos-backend/internal/modules/inventory/repository/postgres"
+	"rentos-backend/internal/modules/inventory/routes"
+	"rentos-backend/internal/modules/inventory/service"
 )
 
 // Module holds the inventory module's wired handler and services.

@@ -3,12 +3,12 @@ package handler
 import (
 	"github.com/gofiber/fiber/v2"
 
-	rbacdto "rentos/internal/modules/rbac/dto/request"
-	rbacresponse "rentos/internal/modules/rbac/dto/response"
-	"rentos/internal/modules/rbac/entity"
-	"rentos/internal/modules/rbac/service"
-	apiresponse "rentos/pkg/response"
-	"rentos/pkg/validator"
+	rbacdto "rentos-backend/internal/modules/rbac/dto/request"
+	rbacresponse "rentos-backend/internal/modules/rbac/dto/response"
+	"rentos-backend/internal/modules/rbac/entity"
+	"rentos-backend/internal/modules/rbac/service"
+	apiresponse "rentos-backend/pkg/response"
+	"rentos-backend/pkg/validator"
 )
 
 const ctxKeyTenantID = "tenant_id"

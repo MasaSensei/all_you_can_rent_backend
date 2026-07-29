@@ -4,8 +4,8 @@ import (
 	"context"
 	"time"
 
-	"rentos/internal/modules/booking/dto/request"
-	"rentos/internal/modules/booking/dto/response"
+	"rentos-backend/internal/modules/booking/dto/request"
+	"rentos-backend/internal/modules/booking/dto/response"
 )
 
 // BookingService manages the full booking lifecycle.

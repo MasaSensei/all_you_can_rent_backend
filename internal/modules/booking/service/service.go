@@ -9,12 +9,12 @@ import (
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 
-	"rentos/internal/modules/booking/dto/request"
-	"rentos/internal/modules/booking/dto/response"
-	"rentos/internal/modules/booking/entity"
-	"rentos/internal/modules/booking/repository"
-	pkgresponse "rentos/pkg/response"
-	"rentos/pkg/transaction"
+	"rentos-backend/internal/modules/booking/dto/request"
+	"rentos-backend/internal/modules/booking/dto/response"
+	"rentos-backend/internal/modules/booking/entity"
+	"rentos-backend/internal/modules/booking/repository"
+	pkgresponse "rentos-backend/pkg/response"
+	"rentos-backend/pkg/transaction"
 )
 
 // ============================================================

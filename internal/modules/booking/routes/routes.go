@@ -3,7 +3,7 @@ package routes
 import (
 	"github.com/gofiber/fiber/v2"
 
-	"rentos/internal/modules/booking/handler"
+	"rentos-backend/internal/modules/booking/handler"
 )
 
 // Register mounts all booking routes under /api/v1.

@@ -6,8 +6,8 @@ import (
 	"errors"
 	"time"
 
-	"rentos/internal/modules/inventory/entity"
-	"rentos/pkg/database"
+	"rentos-backend/internal/modules/inventory/entity"
+	"rentos-backend/pkg/database"
 )
 
 // ErrNotFound is returned when a queried row does not exist.

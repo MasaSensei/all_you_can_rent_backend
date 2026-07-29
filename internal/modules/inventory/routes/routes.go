@@ -3,7 +3,7 @@ package routes
 import (
 	"github.com/gofiber/fiber/v2"
 
-	"rentos/internal/modules/inventory/handler"
+	"rentos-backend/internal/modules/inventory/handler"
 )
 
 // Register mounts all inventory routes under /api/v1.

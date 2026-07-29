@@ -7,10 +7,10 @@ import (
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 
-	"rentos/internal/modules/core/dto/request"
-	"rentos/internal/modules/core/entity"
-	"rentos/internal/modules/core/repository"
-	"rentos/pkg/response"
+	"rentos-backend/internal/modules/core/dto/request"
+	"rentos-backend/internal/modules/core/entity"
+	"rentos-backend/internal/modules/core/repository"
+	"rentos-backend/pkg/response"
 )
 
 const (

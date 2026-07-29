@@ -6,8 +6,8 @@ package service
 import (
 	"context"
 
-	"rentos/internal/modules/core/dto/request"
-	"rentos/internal/modules/core/entity"
+	"rentos-backend/internal/modules/core/dto/request"
+	"rentos-backend/internal/modules/core/entity"
 )
 
 // TenantService manages tenant lifecycle.

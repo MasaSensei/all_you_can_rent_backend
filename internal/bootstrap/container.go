@@ -11,12 +11,12 @@ import (
 	"github.com/redis/go-redis/v9"
 	"github.com/rs/zerolog"
 
-	"rentos/internal/config"
-	"rentos/pkg/cache"
-	"rentos/pkg/database"
-	"rentos/pkg/jwt"
-	"rentos/pkg/logger"
-	"rentos/pkg/validator"
+	"rentos-backend/internal/config"
+	"rentos-backend/pkg/cache"
+	"rentos-backend/pkg/database"
+	"rentos-backend/pkg/jwt"
+	"rentos-backend/pkg/logger"
+	"rentos-backend/pkg/validator"
 )
 
 // Container holds every dependency a feature module needs.

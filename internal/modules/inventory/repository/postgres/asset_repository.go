@@ -7,9 +7,9 @@ import (
 	"fmt"
 	"time"
 
-	"rentos/internal/modules/inventory/entity"
-	"rentos/internal/modules/inventory/repository"
-	"rentos/pkg/database"
+	"rentos-backend/internal/modules/inventory/entity"
+	"rentos-backend/internal/modules/inventory/repository"
+	"rentos-backend/pkg/database"
 )
 
 // ============================================================

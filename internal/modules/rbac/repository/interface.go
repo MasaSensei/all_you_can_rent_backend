@@ -4,8 +4,8 @@ import (
 	"context"
 	"errors"
 
-	"rentos/internal/modules/rbac/entity"
-	"rentos/pkg/database"
+	"rentos-backend/internal/modules/rbac/entity"
+	"rentos-backend/pkg/database"
 )
 
 var ErrNotFound = errors.New("repository: record not found")

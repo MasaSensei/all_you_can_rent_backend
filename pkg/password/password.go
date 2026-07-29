@@ -1,3 +1,7 @@
+// Package password provides bcrypt hashing and verification.
+// Using bcrypt (via golang.org/x/crypto) which is battle-tested and
+// available without extra dependencies. The cost factor is configurable
+// so it can be increased as hardware improves without changing call sites.
 package password
 
 import (
@@ -7,10 +11,13 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+// ErrMismatch is returned by Verify when the password does not match
+// the stored hash.
 var ErrMismatch = errors.New("password: hash mismatch")
 
 const defaultCost = 12
 
+// Hash returns a bcrypt hash of the plaintext password.
 func Hash(plain string) (string, error) {
 	b, err := bcrypt.GenerateFromPassword([]byte(plain), defaultCost)
 	if err != nil {

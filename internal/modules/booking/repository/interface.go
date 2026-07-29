@@ -5,8 +5,8 @@ import (
 	"errors"
 	"time"
 
-	"rentos/internal/modules/booking/entity"
-	"rentos/pkg/database"
+	"rentos-backend/internal/modules/booking/entity"
+	"rentos-backend/pkg/database"
 )
 
 var ErrNotFound = errors.New("repository: record not found")

@@ -6,9 +6,9 @@ import (
 	"errors"
 	"fmt"
 
-	"rentos/internal/modules/core/entity"
-	"rentos/internal/modules/core/repository"
-	"rentos/pkg/database"
+	"rentos-backend/internal/modules/core/entity"
+	"rentos-backend/internal/modules/core/repository"
+	"rentos-backend/pkg/database"
 )
 
 type systemSettingRepository struct {

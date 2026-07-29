@@ -3,11 +3,11 @@ package auth
 import (
 	"github.com/gofiber/fiber/v2"
 
-	"rentos/internal/bootstrap"
-	"rentos/internal/modules/auth/handler"
-	"rentos/internal/modules/auth/repository/postgres"
-	"rentos/internal/modules/auth/routes"
-	"rentos/internal/modules/auth/service"
+	"rentos-backend/internal/bootstrap"
+	"rentos-backend/internal/modules/auth/handler"
+	"rentos-backend/internal/modules/auth/repository/postgres"
+	"rentos-backend/internal/modules/auth/routes"
+	"rentos-backend/internal/modules/auth/service"
 )
 
 // Module holds the auth module's wired handler.

@@ -3,10 +3,10 @@ package handler
 import (
 	"github.com/gofiber/fiber/v2"
 
-	bookingreq "rentos/internal/modules/booking/dto/request"
-	"rentos/internal/modules/booking/service"
-	apiresponse "rentos/pkg/response"
-	"rentos/pkg/validator"
+	bookingreq "rentos-backend/internal/modules/booking/dto/request"
+	"rentos-backend/internal/modules/booking/service"
+	apiresponse "rentos-backend/pkg/response"
+	"rentos-backend/pkg/validator"
 )
 
 const (

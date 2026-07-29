@@ -3,17 +3,17 @@ package rbac
 import (
 	"github.com/gofiber/fiber/v2"
 
-	"rentos/internal/bootstrap"
-	"rentos/internal/modules/rbac/handler"
-	"rentos/internal/modules/rbac/repository/postgres"
-	"rentos/internal/modules/rbac/routes"
-	"rentos/internal/modules/rbac/service"
+	"rentos-backend/internal/bootstrap"
+	"rentos-backend/internal/modules/rbac/handler"
+	"rentos-backend/internal/modules/rbac/repository/postgres"
+	"rentos-backend/internal/modules/rbac/routes"
+	"rentos-backend/internal/modules/rbac/service"
 )
 
 // Module holds the RBAC module's wired handler.
 type Module struct {
-	handler     *handler.Handler
-	userRoleSvc service.UserRoleService
+	handler      *handler.Handler
+	userRoleSvc  service.UserRoleService
 }
 
 // New builds the RBAC module: repositories → services → handler.

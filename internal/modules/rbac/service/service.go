@@ -7,11 +7,11 @@ import (
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 
-	"rentos/internal/modules/rbac/dto/request"
-	"rentos/internal/modules/rbac/entity"
-	"rentos/internal/modules/rbac/repository"
-	"rentos/pkg/response"
-	"rentos/pkg/transaction"
+	"rentos-backend/internal/modules/rbac/dto/request"
+	"rentos-backend/internal/modules/rbac/entity"
+	"rentos-backend/internal/modules/rbac/repository"
+	"rentos-backend/pkg/response"
+	"rentos-backend/pkg/transaction"
 )
 
 // ============================================================
@@ -64,23 +64,14 @@ func (s *roleService) List(ctx context.Context, tenantID string) ([]entity.Role,
 }
 
 func (s *roleService) Update(ctx context.Context, id, tenantID, actorID string, req request.UpdateRole) (*entity.Role, error) {
-	existing, err := s.roles.FindByID(ctx, s.db, id, tenantID)
-	if err != nil {
-		if errors.Is(err, repository.ErrNotFound) {
-			return nil, response.NewAppError(response.CodeNotFound, "role not found or is a system role")
-		}
-		return nil, err
+	r := &entity.Role{
+		ID:          id,
+		TenantID:    tenantID,
+		Name:        req.Name,
+		Description: req.Description,
+		UpdatedBy:   &actorID,
 	}
-
-	if req.Name != nil {
-		existing.Name = *req.Name
-	}
-	if req.Description != nil {
-		existing.Description = req.Description
-	}
-	existing.UpdatedBy = &actorID
-
-	if err := s.roles.Update(ctx, s.db, existing); err != nil {
+	if err := s.roles.Update(ctx, s.db, r); err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
 			return nil, response.NewAppError(response.CodeNotFound, "role not found or is a system role")
 		}

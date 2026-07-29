@@ -6,9 +6,9 @@ import (
 	"errors"
 	"fmt"
 
-	"rentos/internal/modules/inventory/entity"
-	"rentos/internal/modules/inventory/repository"
-	"rentos/pkg/database"
+	"rentos-backend/internal/modules/inventory/entity"
+	"rentos-backend/internal/modules/inventory/repository"
+	"rentos-backend/pkg/database"
 )
 
 // ============================================================
@@ -16,11 +16,11 @@ import (
 // ============================================================
 
 type categoryRepository struct {
-	qCreate   string
-	qFindByID string
-	qList     string
-	qUpdate   string
-	qDelete   string
+	qCreate     string
+	qFindByID   string
+	qList       string
+	qUpdate     string
+	qDelete     string
 }
 
 func NewCategoryRepository(qCreate, qFindByID, qList, qUpdate, qDelete string) repository.CategoryRepository {

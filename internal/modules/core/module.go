@@ -7,11 +7,11 @@ package core
 import (
 	"github.com/gofiber/fiber/v2"
 
-	"rentos/internal/bootstrap"
-	"rentos/internal/modules/core/handler"
-	"rentos/internal/modules/core/repository/postgres"
-	"rentos/internal/modules/core/routes"
-	"rentos/internal/modules/core/service"
+	"rentos-backend/internal/bootstrap"
+	"rentos-backend/internal/modules/core/handler"
+	"rentos-backend/internal/modules/core/repository/postgres"
+	"rentos-backend/internal/modules/core/routes"
+	"rentos-backend/internal/modules/core/service"
 )
 
 // Module holds the core module's wired handler, ready to register routes.

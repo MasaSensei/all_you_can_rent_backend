@@ -3,8 +3,8 @@ package service
 import (
 	"context"
 
-	"rentos/internal/modules/rbac/dto/request"
-	"rentos/internal/modules/rbac/entity"
+	"rentos-backend/internal/modules/rbac/dto/request"
+	"rentos-backend/internal/modules/rbac/entity"
 )
 
 // RoleService manages roles and their permission assignments.

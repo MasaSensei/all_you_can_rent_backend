@@ -6,12 +6,12 @@ package handler
 import (
 	"github.com/gofiber/fiber/v2"
 
-	"rentos/internal/modules/core/dto/request"
-	"rentos/internal/modules/core/dto/response"
-	"rentos/internal/modules/core/entity"
-	"rentos/internal/modules/core/service"
-	apiresponse "rentos/pkg/response"
-	"rentos/pkg/validator"
+	"rentos-backend/internal/modules/core/dto/request"
+	"rentos-backend/internal/modules/core/dto/response"
+	"rentos-backend/internal/modules/core/entity"
+	"rentos-backend/internal/modules/core/service"
+	apiresponse "rentos-backend/pkg/response"
+	"rentos-backend/pkg/validator"
 )
 
 // HeaderTenantID is a temporary stand-in for tenant resolution until the

@@ -6,7 +6,7 @@ package routes
 import (
 	"github.com/gofiber/fiber/v2"
 
-	"rentos/internal/modules/core/handler"
+	"rentos-backend/internal/modules/core/handler"
 )
 
 // Register mounts the core module's routes under the given router

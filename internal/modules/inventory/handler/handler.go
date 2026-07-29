@@ -3,11 +3,11 @@ package handler
 import (
 	"github.com/gofiber/fiber/v2"
 
-	invreq "rentos/internal/modules/inventory/dto/request"
-	"rentos/internal/modules/inventory/entity"
-	"rentos/internal/modules/inventory/service"
-	apiresponse "rentos/pkg/response"
-	"rentos/pkg/validator"
+	invreq "rentos-backend/internal/modules/inventory/dto/request"
+	"rentos-backend/internal/modules/inventory/entity"
+	"rentos-backend/internal/modules/inventory/service"
+	apiresponse "rentos-backend/pkg/response"
+	"rentos-backend/pkg/validator"
 )
 
 const (

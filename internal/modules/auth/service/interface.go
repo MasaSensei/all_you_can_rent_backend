@@ -3,9 +3,9 @@ package service
 import (
 	"context"
 
-	"rentos/internal/modules/auth/dto/request"
-	"rentos/internal/modules/auth/dto/response"
-	"rentos/internal/modules/auth/entity"
+	"rentos-backend/internal/modules/auth/dto/request"
+	"rentos-backend/internal/modules/auth/dto/response"
+	"rentos-backend/internal/modules/auth/entity"
 )
 
 // AuthService handles registration, login, token refresh, and logout.

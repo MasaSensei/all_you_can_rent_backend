@@ -176,10 +176,15 @@ func (r *webhookRepository) Delete(ctx context.Context, q database.Querier, id, 
 type webhookLogRepository struct {
 	qCreate        string
 	qListByWebhook string
+	qUpdateStatus  string
 }
 
-func NewWebhookLogRepository(qCreate, qListByWebhook string) repository.WebhookLogRepository {
-	return &webhookLogRepository{qCreate: qCreate, qListByWebhook: qListByWebhook}
+func NewWebhookLogRepository(qCreate, qListByWebhook, qUpdateStatus string) repository.WebhookLogRepository {
+	return &webhookLogRepository{
+		qCreate:        qCreate,
+		qListByWebhook: qListByWebhook,
+		qUpdateStatus:  qUpdateStatus,
+	}
 }
 
 func (r *webhookLogRepository) Create(ctx context.Context, q database.Querier, l *entity.WebhookLog) error {
@@ -199,4 +204,12 @@ func (r *webhookLogRepository) ListByWebhook(ctx context.Context, q database.Que
 		return nil, fmt.Errorf("webhookLogRepository.ListByWebhook: %w", err)
 	}
 	return out, nil
+}
+
+func (r *webhookLogRepository) UpdateStatus(ctx context.Context, q database.Querier, id, deliveryStatus string, responseCode *int, responseBody *string) error {
+	_, err := q.ExecContext(ctx, r.qUpdateStatus, id, deliveryStatus, responseCode, responseBody)
+	if err != nil {
+		return fmt.Errorf("webhookLogRepository.UpdateStatus: %w", err)
+	}
+	return nil
 }

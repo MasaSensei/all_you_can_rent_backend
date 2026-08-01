@@ -10,14 +10,12 @@ import (
 	"rentos-backend/internal/modules/integration/service"
 )
 
-// Module holds the integration module's wired handler and services.
 type Module struct {
-	handler        *handler.Handler
-	apiKeySvc      service.APIKeyService
-	webhookSvc     service.WebhookService
+	handler    *handler.Handler
+	apiKeySvc  service.APIKeyService
+	webhookSvc service.WebhookService
 }
 
-// New builds the integration module: repositories → services → handler.
 func New(c *bootstrap.Container) *Module {
 	apiKeyRepo := postgres.NewAPIKeyRepository(
 		query("create_api_key.sql"),
@@ -38,28 +36,19 @@ func New(c *bootstrap.Container) *Module {
 	webhookLogRepo := postgres.NewWebhookLogRepository(
 		query("create_webhook_log.sql"),
 		query("list_webhook_logs.sql"),
+		query("update_webhook_log_status.sql"),
 	)
 
-	apiKeySvc  := service.NewAPIKeyService(c.DB, apiKeyRepo)
+	apiKeySvc := service.NewAPIKeyService(c.DB, apiKeyRepo)
 	webhookSvc := service.NewWebhookService(c.DB, webhookRepo, webhookLogRepo)
 
 	h := handler.New(apiKeySvc, webhookSvc, c.Validator)
 	return &Module{handler: h, apiKeySvc: apiKeySvc, webhookSvc: webhookSvc}
 }
 
-// RegisterRoutes mounts the module's routes onto /api/v1.
 func (m *Module) RegisterRoutes(router fiber.Router) {
 	routes.Register(router, m.handler)
 }
 
-// APIKeyService exposes the service so the APIKeyAuthMiddleware can call
-// ResolveByRawKey on every request bearing an API key header.
-func (m *Module) APIKeyService() service.APIKeyService {
-	return m.apiKeySvc
-}
-
-// WebhookService exposes the service so domain event handlers in other
-// modules can call Dispatch to fan-out event notifications.
-func (m *Module) WebhookService() service.WebhookService {
-	return m.webhookSvc
-}
+func (m *Module) APIKeyService() service.APIKeyService   { return m.apiKeySvc }
+func (m *Module) WebhookService() service.WebhookService { return m.webhookSvc }

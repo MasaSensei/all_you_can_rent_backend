@@ -1,24 +1,26 @@
+version: "2"
+
 run:
   timeout: 5m
   tests: true
 
 linters:
   enable:
-    - errcheck       # unchecked errors
-    - gosimple       # simplification suggestions
-    - govet          # go vet checks
-    - ineffassign    # detects unused variable assignments
-    - staticcheck    # static analysis
-    - unused         # unused code
-    - gofmt          # formatting
-    - goimports      # import ordering
-    - misspell       # spelling mistakes
-    - gocritic       # code style
-    - noctx          # HTTP requests without context
-    - bodyclose      # HTTP response body not closed
-    - revive         # fast, configurable linter
-    - exhaustive     # exhaustive switch statements
-    - prealloc       # slice preallocation
+    - errcheck # unchecked errors
+    - gosimple # simplification suggestions
+    - govet # go vet checks
+    - ineffassign # detects unused variable assignments
+    - staticcheck # static analysis
+    - unused # unused code
+    - gofmt # formatting
+    - goimports # import ordering
+    - misspell # spelling mistakes
+    - gocritic # code style
+    - noctx # HTTP requests without context
+    - bodyclose # HTTP response body not closed
+    - revive # fast, configurable linter
+    - exhaustive # exhaustive switch statements
+    - prealloc # slice preallocation
 
 linters-settings:
   revive:

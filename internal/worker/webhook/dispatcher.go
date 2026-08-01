@@ -85,17 +85,17 @@ func (d *Dispatcher) Deliver(ctx context.Context, webhookID, logID, targetURL, s
 	resp, err := d.httpClient.Do(req)
 	if err != nil {
 		errMsg := err.Error()
-		_ = d.logRepo.UpdateStatus(ctx, d.db, logID, "failed", &errMsg)
+		_ = d.logRepo.UpdateStatus(ctx, d.db, logID, "failed", nil, &errMsg)
 		return fmt.Errorf("dispatcher.Deliver: HTTP POST: %w", err)
 	}
 	defer resp.Body.Close()
 
 	code := resp.StatusCode
 	if code >= 200 && code < 300 {
-		_ = d.logRepo.UpdateStatus(ctx, d.db, logID, "sent", nil)
+		_ = d.logRepo.UpdateStatus(ctx, d.db, logID, "sent", nil, nil)
 	} else {
 		msg := fmt.Sprintf("non-2xx response: %d", code)
-		_ = d.logRepo.UpdateStatus(ctx, d.db, logID, "failed", &msg)
+		_ = d.logRepo.UpdateStatus(ctx, d.db, logID, "failed", nil, &msg)
 	}
 	return nil
 }

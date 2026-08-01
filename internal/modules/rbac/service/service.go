@@ -67,7 +67,7 @@ func (s *roleService) Update(ctx context.Context, id, tenantID, actorID string, 
 	r := &entity.Role{
 		ID:          id,
 		TenantID:    tenantID,
-		Name:        req.Name,
+		Name:        *req.Name,
 		Description: req.Description,
 		UpdatedBy:   &actorID,
 	}

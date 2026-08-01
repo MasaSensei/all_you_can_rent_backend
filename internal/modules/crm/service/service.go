@@ -93,8 +93,8 @@ func (s *customerService) Update(ctx context.Context, id, tenantID, actorID stri
 	c := &entity.Customer{
 		ID:               id,
 		TenantID:         tenantID,
-		FirstName:        req.FirstName,
-		LastName:         req.LastName,
+		FirstName:        *req.FirstName,
+		LastName:         *req.LastName,
 		Phone:            req.Phone,
 		CompanyName:      req.CompanyName,
 		DateOfBirth:      req.DateOfBirth,

@@ -2,6 +2,13 @@ package service
 
 import "testing"
 
+func derefStr(s *string) string {
+	if s == nil {
+		return ""
+	}
+	return *s
+}
+
 func TestNormPage(t *testing.T) {
 	tests := []struct {
 		perPage, page int

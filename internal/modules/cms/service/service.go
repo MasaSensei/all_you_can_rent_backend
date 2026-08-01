@@ -62,7 +62,7 @@ func (s *websiteService) List(ctx context.Context, tenantID string) ([]response.
 }
 
 func (s *websiteService) Update(ctx context.Context, id, tenantID, actorID string, req request.UpdateWebsite) (*response.Website, error) {
-	w := &entity.Website{ID: id, TenantID: tenantID, Title: req.Title, Theme: req.Theme, UpdatedBy: &actorID}
+	w := &entity.Website{ID: id, TenantID: tenantID, Title: derefStr(req.Title), Theme: req.Theme, UpdatedBy: &actorID}
 	if err := s.repo.Update(ctx, s.db, w); err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
 			return nil, pkgresponse.NewAppError(pkgresponse.CodeNotFound, "website not found")
@@ -142,7 +142,7 @@ func (s *pageService) List(ctx context.Context, websiteID, tenantID string, page
 }
 
 func (s *pageService) Update(ctx context.Context, id, tenantID, actorID string, req request.UpdatePage) (*response.Page, error) {
-	p := &entity.Page{ID: id, TenantID: tenantID, Title: req.Title, Content: req.Content, Template: req.Template, Status: derefStr(req.Status), UpdatedBy: &actorID}
+	p := &entity.Page{ID: id, TenantID: tenantID, Title: derefStr(req.Title), Content: req.Content, Template: req.Template, Status: derefStr(req.Status), UpdatedBy: &actorID}
 	if err := s.repo.Update(ctx, s.db, p); err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
 			return nil, pkgresponse.NewAppError(pkgresponse.CodeNotFound, "page not found")
@@ -335,7 +335,7 @@ func (s *blogService) List(ctx context.Context, tenantID string, filter request.
 }
 
 func (s *blogService) Update(ctx context.Context, id, tenantID, actorID string, req request.UpdateBlog) (*response.Blog, error) {
-	b := &entity.Blog{ID: id, TenantID: tenantID, Title: req.Title, Content: req.Content, FeaturedImage: req.FeaturedImage, Status: derefStr(req.Status), UpdatedBy: &actorID}
+	b := &entity.Blog{ID: id, TenantID: tenantID, Title: derefStr(req.Title), Content: req.Content, FeaturedImage: req.FeaturedImage, Status: derefStr(req.Status), UpdatedBy: &actorID}
 	if err := s.blogs.Update(ctx, s.db, b); err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
 			return nil, pkgresponse.NewAppError(pkgresponse.CodeNotFound, "blog not found")

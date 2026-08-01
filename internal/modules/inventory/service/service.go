@@ -66,7 +66,7 @@ func (s *categoryService) Update(ctx context.Context, id, tenantID, actorID stri
 	c := &entity.Category{
 		ID:          id,
 		TenantID:    tenantID,
-		Name:        req.Name,
+		Name:        *req.Name,
 		Description: req.Description,
 		Icon:        req.Icon,
 		SortOrder:   derefInt(req.SortOrder),
@@ -174,7 +174,7 @@ func (s *assetTemplateService) List(ctx context.Context, tenantID string) ([]res
 }
 
 func (s *assetTemplateService) Update(ctx context.Context, id, tenantID, actorID string, req request.UpdateAssetTemplate) (*response.AssetTemplate, error) {
-	t := &entity.AssetTemplate{ID: id, TenantID: tenantID, Name: req.Name, Description: req.Description, UpdatedBy: &actorID}
+	t := &entity.AssetTemplate{ID: id, TenantID: tenantID, Name: *req.Name, Description: req.Description, UpdatedBy: &actorID}
 	if err := s.templates.Update(ctx, s.db, t); err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
 			return nil, pkgresponse.NewAppError(pkgresponse.CodeNotFound, "asset template not found")
@@ -307,7 +307,7 @@ func (s *assetService) Update(ctx context.Context, id, tenantID, actorID string,
 	a := &entity.Asset{
 		ID:               id,
 		TenantID:         tenantID,
-		Name:             req.Name,
+		Name:             *req.Name,
 		Description:      req.Description,
 		Condition:        derefStr(req.Condition),
 		Location:         req.Location,

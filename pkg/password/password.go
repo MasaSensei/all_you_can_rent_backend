@@ -28,13 +28,19 @@ func Hash(plain string) (string, error) {
 
 // Verify checks plain against the stored bcrypt hash.
 // Returns ErrMismatch if they do not match, or another error on failure.
-func Verify(plain, hash string) error {
-	err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(plain))
+func Verify(hash, plain string) error {
+	err := bcrypt.CompareHashAndPassword(
+		[]byte(hash),
+		[]byte(plain),
+	)
+
 	if errors.Is(err, bcrypt.ErrMismatchedHashAndPassword) {
 		return ErrMismatch
 	}
+
 	if err != nil {
 		return fmt.Errorf("password: verify: %w", err)
 	}
+
 	return nil
 }

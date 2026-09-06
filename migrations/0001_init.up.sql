@@ -13,17 +13,112 @@ CREATE EXTENSION IF NOT EXISTS pgcrypto;
 -- =========================================================================
 
 CREATE TABLE tenants (
-    id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    name        VARCHAR(255) NOT NULL,
-    slug        VARCHAR(100) NOT NULL UNIQUE,
-    domain      VARCHAR(255),
-    plan        VARCHAR(50) NOT NULL DEFAULT 'free',
-    status      VARCHAR(30) NOT NULL DEFAULT 'pending',
-    created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
-    updated_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
-    deleted_at  TIMESTAMPTZ,
-    version     INTEGER NOT NULL DEFAULT 1
+    id                   UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name                 VARCHAR(255) NOT NULL,
+    slug                 VARCHAR(100) NOT NULL UNIQUE,
+    email                VARCHAR(255) NOT NULL,
+    phone                VARCHAR(30),
+    logo_url             VARCHAR(500),
+    address              TEXT,
+    timezone             VARCHAR(100) NOT NULL DEFAULT 'Asia/Jakarta',
+    locale               VARCHAR(10)  NOT NULL DEFAULT 'id-ID',
+    currency             CHAR(3)      NOT NULL DEFAULT 'IDR',
+    subscription_status  VARCHAR(50)  NOT NULL DEFAULT 'trial',
+    trial_ends_at        TIMESTAMPTZ,
+    status               VARCHAR(50)  NOT NULL DEFAULT 'active',
+    created_by           UUID,
+    updated_by           UUID,
+    created_at           TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
+    updated_at           TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
+    deleted_at           TIMESTAMPTZ,
+    version              INT          NOT NULL DEFAULT 1
 );
+
+CREATE TABLE subscription_plans (
+    id                       UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name                     VARCHAR(100)  NOT NULL,
+    slug                     VARCHAR(50)   NOT NULL UNIQUE,
+    description              TEXT,
+    price_monthly            NUMERIC(15,2) NOT NULL,
+    price_yearly             NUMERIC(15,2) NOT NULL,
+    max_assets               INT,
+    max_users                INT,
+    max_bookings_per_month   INT,
+    features                 JSONB,
+    is_active                BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at               TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at               TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    version                  INT NOT NULL DEFAULT 1
+);
+
+INSERT INTO subscription_plans (name, slug, description, price_monthly, price_yearly, max_assets, max_users, features) VALUES
+    ('Trial',       'trial',       'Coba gratis 14 hari',       0,        0,        10,   3,  '["inventory","bookings","customers","finance"]'),
+    ('Starter',     'starter',     'Untuk bisnis kecil',        299000,   2990000,  50,   5,  '["inventory","bookings","customers","finance","reports"]'),
+    ('Professional','professional','Untuk bisnis menengah',      799000,   7990000,  200,  20, '["inventory","bookings","customers","finance","reports","cms","notifications","maintenance"]'),
+    ('Enterprise',  'enterprise',  'Tidak terbatas + priority',  1999000, 19990000, NULL, NULL,'["all","api_keys","webhooks","priority_support"]');
+
+CREATE TABLE tenant_subscriptions (
+    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    tenant_id       UUID NOT NULL REFERENCES tenants(id),
+    plan_id         UUID NOT NULL REFERENCES subscription_plans(id),
+    billing_cycle   VARCHAR(10)   NOT NULL DEFAULT 'monthly',
+    price_paid      NUMERIC(15,2) NOT NULL,
+    starts_at       TIMESTAMPTZ   NOT NULL,
+    ends_at         TIMESTAMPTZ   NOT NULL,
+    auto_renew      BOOLEAN NOT NULL DEFAULT TRUE,
+    status          VARCHAR(50)   NOT NULL DEFAULT 'active',
+    cancelled_at    TIMESTAMPTZ,
+    created_at      TIMESTAMPTZ   NOT NULL DEFAULT NOW(),
+    updated_at      TIMESTAMPTZ   NOT NULL DEFAULT NOW(),
+    deleted_at      TIMESTAMPTZ,
+    version         INT NOT NULL DEFAULT 1
+);
+
+CREATE TABLE subscription_payments (
+    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    tenant_id       UUID NOT NULL REFERENCES tenants(id),
+    subscription_id UUID NOT NULL REFERENCES tenant_subscriptions(id),
+    amount          NUMERIC(15,2) NOT NULL,
+    currency        CHAR(3)       NOT NULL DEFAULT 'IDR',
+    payment_method  VARCHAR(50),
+    transaction_ref VARCHAR(150),
+    paid_at         TIMESTAMPTZ,
+    status          VARCHAR(50)   NOT NULL DEFAULT 'pending',
+    created_at      TIMESTAMPTZ   NOT NULL DEFAULT NOW(),
+    updated_at      TIMESTAMPTZ   NOT NULL DEFAULT NOW(),
+    version         INT NOT NULL DEFAULT 1
+);
+
+CREATE TABLE super_admins (
+    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    email           VARCHAR(255) NOT NULL UNIQUE,
+    password_hash   VARCHAR(255) NOT NULL,
+    full_name       VARCHAR(255) NOT NULL,
+    is_active       BOOLEAN NOT NULL DEFAULT TRUE,
+    last_login_at   TIMESTAMPTZ,
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    version         INT NOT NULL DEFAULT 1
+);
+
+-- Super admin default (password: SuperAdmin1234!)
+INSERT INTO super_admins (id, email, password_hash, full_name) VALUES (
+    '99999999-9999-9999-9999-999999999999',
+    'superadmin@rentos.app',
+    '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy',
+    'RentOS Super Admin'
+);
+
+-- Default tenant untuk development
+INSERT INTO tenants (id, name, slug, email, subscription_status, trial_ends_at) VALUES (
+    '00000000-0000-0000-0000-000000000001',
+    'Demo Rental Co.',
+    'demo',
+    'admin@rentos.local',
+    'trial',
+    NOW() + INTERVAL '14 days'
+);
+
 
 CREATE TABLE system_settings (
     id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),

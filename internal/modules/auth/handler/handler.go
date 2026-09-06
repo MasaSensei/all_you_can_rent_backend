@@ -1,201 +1,132 @@
 package handler
 
 import (
+	"fmt"
+
 	"github.com/gofiber/fiber/v2"
 
-	authdto "rentos-backend/internal/modules/auth/dto/request"
-	authresponse "rentos-backend/internal/modules/auth/dto/response"
-	"rentos-backend/internal/modules/auth/entity"
+	"rentos-backend/internal/modules/auth/dto/request"
 	"rentos-backend/internal/modules/auth/service"
-	apiresponse "rentos-backend/pkg/response"
+	"rentos-backend/pkg/response"
 	"rentos-backend/pkg/validator"
 )
 
-// ctxKeyTenantID is the fiber.Ctx.Locals key set by TenantResolver middleware.
-const ctxKeyTenantID = "tenant_id"
-
-// ctxKeySessionID is the fiber.Ctx.Locals key set by AuthMiddleware.
-const ctxKeySessionID = "session_id"
-
-// Handler groups the auth module's HTTP handlers.
 type Handler struct {
-	auth     service.AuthService
-	users    service.UserService
-	password service.PasswordService
+	svc      service.AuthService
 	validate *validator.Validate
 }
 
-func New(
-	auth service.AuthService,
-	users service.UserService,
-	pwd service.PasswordService,
-	v *validator.Validate,
-) *Handler {
-	return &Handler{auth: auth, users: users, password: pwd, validate: v}
+func New(svc service.AuthService, v *validator.Validate) *Handler {
+	return &Handler{svc: svc, validate: v}
 }
 
 func tenantID(c *fiber.Ctx) string {
-	if id, ok := c.Locals(ctxKeyTenantID).(string); ok {
+	if id, ok := c.Locals("tenant_id").(string); ok && id != "" {
 		return id
 	}
-	// Fallback for Phase 1 compatibility until TenantResolver is wired.
 	return c.Get("X-Tenant-ID")
 }
 
-// ---- Auth ----
-
-func (h *Handler) Register(c *fiber.Ctx) error {
-	var req authdto.Register
-	if err := c.BodyParser(&req); err != nil {
-		return apiresponse.Error(c, apiresponse.NewAppError(apiresponse.CodeValidation, "invalid request body"))
-	}
-	if errs := h.validate.Struct(req); errs != nil {
-		return apiresponse.Error(c, apiresponse.NewAppError(apiresponse.CodeValidation, "validation failed").WithDetails(errs))
-	}
-
-	result, err := h.auth.Register(c.Context(), tenantID(c), req)
-	if err != nil {
-		return apiresponse.FromError(c, err)
-	}
-	return apiresponse.Created(c, result)
+func userID(c *fiber.Ctx) string {
+	id, _ := c.Locals("user_id").(string)
+	return id
 }
 
+// POST /auth/login
 func (h *Handler) Login(c *fiber.Ctx) error {
-	var req authdto.Login
+	var req request.Login
 	if err := c.BodyParser(&req); err != nil {
-		return apiresponse.Error(c, apiresponse.NewAppError(apiresponse.CodeValidation, "invalid request body"))
+		return response.Error(c, response.NewAppError(response.CodeValidation, "invalid body"))
 	}
 	if errs := h.validate.Struct(req); errs != nil {
-		return apiresponse.Error(c, apiresponse.NewAppError(apiresponse.CodeValidation, "validation failed").WithDetails(errs))
+		return response.Error(c, response.NewAppError(response.CodeValidation, fmt.Sprint(errs)))
 	}
-
-	result, err := h.auth.Login(c.Context(), tenantID(c), req,
-		c.IP(), c.Get("User-Agent"),
+	tokens, err := h.svc.Login(
+		c.Context(), req,
+		c.Get("User-Agent"), c.IP(),
 	)
 	if err != nil {
-		return apiresponse.FromError(c, err)
+		return response.FromError(c, err)
 	}
-	return apiresponse.Success(c, result)
+	return response.Success(c, tokens)
 }
 
+// POST /auth/refresh
 func (h *Handler) Refresh(c *fiber.Ctx) error {
-	var req authdto.RefreshToken
+	var req request.Refresh
 	if err := c.BodyParser(&req); err != nil {
-		return apiresponse.Error(c, apiresponse.NewAppError(apiresponse.CodeValidation, "invalid request body"))
+		return response.Error(c, response.NewAppError(response.CodeValidation, "invalid body"))
 	}
-	if errs := h.validate.Struct(req); errs != nil {
-		return apiresponse.Error(c, apiresponse.NewAppError(apiresponse.CodeValidation, "validation failed").WithDetails(errs))
-	}
-
-	result, err := h.auth.Refresh(c.Context(), req)
+	tokens, err := h.svc.Refresh(c.Context(), req)
 	if err != nil {
-		return apiresponse.FromError(c, err)
+		return response.FromError(c, err)
 	}
-	return apiresponse.Success(c, result)
+	return response.Success(c, tokens)
 }
 
+// POST /auth/logout
 func (h *Handler) Logout(c *fiber.Ctx) error {
-	sessionID, _ := c.Locals(ctxKeySessionID).(string)
-	if err := h.auth.Logout(c.Context(), sessionID); err != nil {
-		return apiresponse.FromError(c, err)
+	var req request.Logout
+	if err := c.BodyParser(&req); err != nil {
+		return response.Error(c, response.NewAppError(response.CodeValidation, "invalid body"))
 	}
-	return apiresponse.NoContent(c)
+	if err := h.svc.Logout(c.Context(), req); err != nil {
+		return response.FromError(c, err)
+	}
+	return response.NoContent(c)
 }
 
+// GET /auth/me
+func (h *Handler) Me(c *fiber.Ctx) error {
+	info, err := h.svc.Me(c.Context(), userID(c), tenantID(c))
+	if err != nil {
+		return response.FromError(c, err)
+	}
+	return response.Success(c, info)
+}
+
+// POST /auth/forgot-password
 func (h *Handler) ForgotPassword(c *fiber.Ctx) error {
-	var req authdto.ForgotPassword
+	var req request.ForgotPassword
 	if err := c.BodyParser(&req); err != nil {
-		return apiresponse.Error(c, apiresponse.NewAppError(apiresponse.CodeValidation, "invalid request body"))
+		return response.Error(c, response.NewAppError(response.CodeValidation, "invalid body"))
 	}
 	if errs := h.validate.Struct(req); errs != nil {
-		return apiresponse.Error(c, apiresponse.NewAppError(apiresponse.CodeValidation, "validation failed").WithDetails(errs))
+		return response.Error(c, response.NewAppError(response.CodeValidation, fmt.Sprint(errs)))
 	}
-
-	if err := h.password.ForgotPassword(c.Context(), tenantID(c), req); err != nil {
-		return apiresponse.FromError(c, err)
-	}
-	// Always return 200 to prevent email enumeration.
-	return apiresponse.Success(c, fiber.Map{"message": "if the email is registered, a reset link has been sent"})
+	// Always return success to avoid email enumeration
+	_ = h.svc.ForgotPassword(c.Context(), tenantID(c), req)
+	return response.Success(c, fiber.Map{
+		"message": "Jika email terdaftar, instruksi reset password telah dikirim",
+	})
 }
 
+// POST /auth/reset-password
 func (h *Handler) ResetPassword(c *fiber.Ctx) error {
-	var req authdto.ResetPassword
+	var req request.ResetPassword
 	if err := c.BodyParser(&req); err != nil {
-		return apiresponse.Error(c, apiresponse.NewAppError(apiresponse.CodeValidation, "invalid request body"))
+		return response.Error(c, response.NewAppError(response.CodeValidation, "invalid body"))
 	}
 	if errs := h.validate.Struct(req); errs != nil {
-		return apiresponse.Error(c, apiresponse.NewAppError(apiresponse.CodeValidation, "validation failed").WithDetails(errs))
+		return response.Error(c, response.NewAppError(response.CodeValidation, fmt.Sprint(errs)))
 	}
-
-	if err := h.password.ResetPassword(c.Context(), tenantID(c), req); err != nil {
-		return apiresponse.FromError(c, err)
+	if err := h.svc.ResetPassword(c.Context(), req); err != nil {
+		return response.FromError(c, err)
 	}
-	return apiresponse.Success(c, fiber.Map{"message": "password reset successfully"})
+	return response.Success(c, fiber.Map{"message": "Password berhasil direset"})
 }
 
-// ---- Users ----
-
-func (h *Handler) ListUsers(c *fiber.Ctx) error {
-	users, err := h.users.List(c.Context(), tenantID(c),
-		c.QueryInt("page", 1), c.QueryInt("per_page", 20),
-	)
-	if err != nil {
-		return apiresponse.FromError(c, err)
-	}
-
-	out := make([]authresponse.User, 0, len(users))
-	for _, u := range users {
-		out = append(out, toUserResponse(&u))
-	}
-	return apiresponse.Success(c, out)
-}
-
-func (h *Handler) GetUser(c *fiber.Ctx) error {
-	u, err := h.users.GetByID(c.Context(), c.Params("id"), tenantID(c))
-	if err != nil {
-		return apiresponse.FromError(c, err)
-	}
-	return apiresponse.Success(c, toUserResponse(u))
-}
-
-func (h *Handler) UpdateUser(c *fiber.Ctx) error {
-	var req authdto.UpdateUser
+// POST /auth/change-password  (requires auth)
+func (h *Handler) ChangePassword(c *fiber.Ctx) error {
+	var req request.ChangePassword
 	if err := c.BodyParser(&req); err != nil {
-		return apiresponse.Error(c, apiresponse.NewAppError(apiresponse.CodeValidation, "invalid request body"))
+		return response.Error(c, response.NewAppError(response.CodeValidation, "invalid body"))
 	}
 	if errs := h.validate.Struct(req); errs != nil {
-		return apiresponse.Error(c, apiresponse.NewAppError(apiresponse.CodeValidation, "validation failed").WithDetails(errs))
+		return response.Error(c, response.NewAppError(response.CodeValidation, fmt.Sprint(errs)))
 	}
-
-	u, err := h.users.Update(c.Context(), c.Params("id"), tenantID(c), req)
-	if err != nil {
-		return apiresponse.FromError(c, err)
+	if err := h.svc.ChangePassword(c.Context(), userID(c), tenantID(c), req); err != nil {
+		return response.FromError(c, err)
 	}
-	return apiresponse.Success(c, toUserResponse(u))
-}
-
-func (h *Handler) DeleteUser(c *fiber.Ctx) error {
-	if err := h.users.Delete(c.Context(), c.Params("id"), tenantID(c)); err != nil {
-		return apiresponse.FromError(c, err)
-	}
-	return apiresponse.NoContent(c)
-}
-
-// ---- mapping ----
-
-func toUserResponse(u *entity.User) authresponse.User {
-	return authresponse.User{
-		ID:          u.ID,
-		TenantID:    u.TenantID,
-		Email:       u.Email,
-		FirstName:   u.FirstName,
-		LastName:    u.LastName,
-		Phone:       u.Phone,
-		AvatarURL:   u.AvatarURL,
-		IsActive:    u.IsActive,
-		LastLoginAt: u.LastLoginAt,
-		Status:      u.Status,
-		CreatedAt:   u.CreatedAt,
-		UpdatedAt:   u.UpdatedAt,
-	}
+	return response.NoContent(c)
 }

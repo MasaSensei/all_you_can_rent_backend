@@ -15,6 +15,7 @@ type BookingService interface {
 	List(ctx context.Context, tenantID string, filter request.ListBookingsFilter) ([]response.Booking, error)
 	Confirm(ctx context.Context, id, tenantID, actorID string) (*response.Booking, error)
 	Cancel(ctx context.Context, id, tenantID, actorID string, req request.CancelBooking) (*response.Booking, error)
+	CalendarView(ctx context.Context, tenantID, startDate, endDate, categoryID, status string) ([]BookingSlot, error)
 }
 
 // BookingItemService manages extensions and returns for individual items.

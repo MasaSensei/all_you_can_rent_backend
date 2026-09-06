@@ -3,8 +3,11 @@ package service
 import (
 	"context"
 	"crypto/rand"
+	"crypto/sha256"
 	"encoding/hex"
 	"errors"
+	"fmt"
+	"reflect"
 	"time"
 
 	"github.com/google/uuid"
@@ -14,307 +17,327 @@ import (
 	"rentos-backend/internal/modules/auth/dto/response"
 	"rentos-backend/internal/modules/auth/entity"
 	"rentos-backend/internal/modules/auth/repository"
-	"rentos-backend/pkg/jwt"
 	"rentos-backend/pkg/password"
-	pkgresponse "rentos-backend/pkg/response"
+	pkgresp "rentos-backend/pkg/response"
 )
 
-const (
-	passwordResetTTL = 1 * time.Hour
-	defaultPageSize  = 20
-	maxPageSize      = 100
-)
-
-// ============================================================
-// authService
-// ============================================================
+type AuthService interface {
+	Login(ctx context.Context, req request.Login, userAgent, ip string) (*response.AuthTokens, error)
+	Refresh(ctx context.Context, req request.Refresh) (*response.AuthTokens, error)
+	Logout(ctx context.Context, req request.Logout) error
+	Me(ctx context.Context, userID, tenantID string) (*response.UserInfo, error)
+	ForgotPassword(ctx context.Context, tenantID string, req request.ForgotPassword) error
+	ResetPassword(ctx context.Context, req request.ResetPassword) error
+	ChangePassword(ctx context.Context, userID, tenantID string, req request.ChangePassword) error
+}
 
 type authService struct {
-	db      *sqlx.DB
-	users   repository.UserRepository
+	db       *sqlx.DB
+	users    repository.UserRepository
 	sessions repository.SessionRepository
-	jwt     *jwt.Service
+	resets   repository.PasswordResetRepository
+	jwt      any
 }
 
 func NewAuthService(
 	db *sqlx.DB,
 	users repository.UserRepository,
 	sessions repository.SessionRepository,
-	jwtSvc *jwt.Service,
+	resets repository.PasswordResetRepository,
+	jwt any,
 ) AuthService {
-	return &authService{db: db, users: users, sessions: sessions, jwt: jwtSvc}
+	return &authService{db: db, users: users, sessions: sessions, resets: resets, jwt: jwt}
 }
 
-func (s *authService) Register(ctx context.Context, tenantID string, req request.Register) (*response.Auth, error) {
-	// Guard: email must be unique within the tenant.
-	if _, err := s.users.FindByEmail(ctx, s.db, req.Email, tenantID); !errors.Is(err, repository.ErrNotFound) {
-		if err == nil {
-			return nil, pkgresponse.NewAppError(pkgresponse.CodeConflict, "email already registered")
-		}
-		return nil, err
-	}
+func (s *authService) Login(
+	ctx context.Context,
+	req request.Login,
+	userAgent,
+	ip string,
+) (*response.AuthTokens, error) {
 
-	hash, err := password.Hash(req.Password)
+	u, err := s.users.FindByEmail(ctx, s.db, req.Email)
 	if err != nil {
-		return nil, err
+		fmt.Println("FIND USER ERROR:", err)
+		return nil, pkgresp.NewAppError(
+			pkgresp.CodeUnauthorized,
+			"email atau password salah",
+		)
 	}
 
-	u := &entity.User{
-		ID:           uuid.NewString(),
-		TenantID:     tenantID,
-		Email:        req.Email,
-		PasswordHash: hash,
-		FirstName:    &req.FirstName,
-		LastName:     &req.LastName,
-		Phone:        req.Phone,
-	}
-	if err := s.users.Create(ctx, s.db, u); err != nil {
-		return nil, err
-	}
-
-	return s.issueTokenPair(ctx, u, "", "")
-}
-
-func (s *authService) Login(ctx context.Context, tenantID string, req request.Login, ip, ua string) (*response.Auth, error) {
-	u, err := s.users.FindByEmail(ctx, s.db, req.Email, tenantID)
-	if err != nil {
-		if errors.Is(err, repository.ErrNotFound) {
-			return nil, pkgresponse.NewAppError(pkgresponse.CodeUnauthorized, "invalid credentials")
-		}
-		return nil, err
-	}
+	fmt.Println("USER FOUND:", u.ID)
 
 	if !u.IsActive {
-		return nil, pkgresponse.NewAppError(pkgresponse.CodeForbidden, "account is inactive")
+		fmt.Println("USER NOT ACTIVE")
+		return nil, pkgresp.NewAppError(
+			pkgresp.CodeUnauthorized,
+			"akun dinonaktifkan",
+		)
 	}
 
-	if err := password.Verify(req.Password, u.PasswordHash); err != nil {
-		if errors.Is(err, password.ErrMismatch) {
-			return nil, pkgresponse.NewAppError(pkgresponse.CodeUnauthorized, "invalid credentials")
-		}
-		return nil, err
+	if u.PasswordHash == nil {
+		fmt.Println("PASSWORD HASH NIL")
+		return nil, pkgresp.NewAppError(
+			pkgresp.CodeUnauthorized,
+			"email atau password salah",
+		)
 	}
 
-	// Fire-and-forget last login update — failure is non-fatal.
-	_ = s.users.UpdateLastLogin(ctx, s.db, u.ID)
+	fmt.Println("VERIFY PASSWORD")
 
-	return s.issueTokenPair(ctx, u, ip, ua)
+	if err := password.Verify(*u.PasswordHash, req.Password); err != nil {
+		fmt.Println("PASSWORD VERIFY FAILED:", err)
+		return nil, pkgresp.NewAppError(
+			pkgresp.CodeUnauthorized,
+			"email atau password salah",
+		)
+	}
+
+	fmt.Println("PASSWORD OK")
+
+	return s.issueTokens(ctx, u, userAgent, ip)
 }
 
-func (s *authService) Refresh(ctx context.Context, req request.RefreshToken) (*response.Auth, error) {
-	claims, err := s.jwt.ParseRefresh(req.RefreshToken)
+func (s *authService) Refresh(ctx context.Context, req request.Refresh) (*response.AuthTokens, error) {
+	claims, err := parseClaims(s.jwt, req.RefreshToken)
 	if err != nil {
-		return nil, pkgresponse.NewAppError(pkgresponse.CodeUnauthorized, "invalid refresh token")
+		return nil, pkgresp.NewAppError(pkgresp.CodeUnauthorized, "refresh token tidak valid atau kadaluarsa")
+	}
+	if claims.TokenType != "refresh" {
+		return nil, pkgresp.NewAppError(pkgresp.CodeUnauthorized, "bukan refresh token")
 	}
 
-	sess, err := s.sessions.FindByRefreshToken(ctx, s.db, req.RefreshToken)
+	// Revoke old refresh token
+	_ = s.sessions.Revoke(ctx, s.db, req.RefreshToken)
+
+	u, err := s.users.FindByID(ctx, s.db, claims.UserID)
+	if err != nil || !u.IsActive {
+		return nil, pkgresp.NewAppError(pkgresp.CodeUnauthorized, "user tidak ditemukan atau nonaktif")
+	}
+
+	return s.issueTokens(ctx, u, "", "")
+}
+
+func (s *authService) Logout(ctx context.Context, req request.Logout) error {
+	return s.sessions.Revoke(ctx, s.db, req.RefreshToken)
+}
+
+func (s *authService) Me(ctx context.Context, userID, tenantID string) (*response.UserInfo, error) {
+	u, err := s.users.FindByID(ctx, s.db, userID)
 	if err != nil {
-		return nil, pkgresponse.NewAppError(pkgresponse.CodeUnauthorized, "session not found or expired")
+		return nil, pkgresp.NewAppError(pkgresp.CodeNotFound, "user tidak ditemukan")
 	}
+	return toUserInfo(u), nil
+}
 
-	// Rotate: revoke old session.
-	if err := s.sessions.Revoke(ctx, s.db, sess.ID); err != nil {
-		return nil, err
-	}
-
-	u, err := s.users.FindByID(ctx, s.db, claims.UserID, claims.TenantID)
+func (s *authService) ForgotPassword(ctx context.Context, tenantID string, req request.ForgotPassword) error {
+	u, err := s.users.FindByEmail(ctx, s.db, req.Email)
 	if err != nil {
-		return nil, pkgresponse.NewAppError(pkgresponse.CodeUnauthorized, "user not found")
-	}
-
-	return s.issueTokenPair(ctx, u, "", "")
-}
-
-func (s *authService) Logout(ctx context.Context, sessionID string) error {
-	return s.sessions.Revoke(ctx, s.db, sessionID)
-}
-
-// issueTokenPair mints access + refresh tokens and persists the session.
-func (s *authService) issueTokenPair(ctx context.Context, u *entity.User, ip, ua string) (*response.Auth, error) {
-	roles := []string{} // populated by RBAC module once it exists
-
-	accessToken, err := s.jwt.IssueAccess(u.ID, u.TenantID, u.Email, roles)
-	if err != nil {
-		return nil, err
-	}
-	refreshToken, err := s.jwt.IssueRefresh(u.ID, u.TenantID, u.Email, roles)
-	if err != nil {
-		return nil, err
-	}
-
-	sess := &entity.UserSession{
-		ID:           uuid.NewString(),
-		TenantID:     u.TenantID,
-		UserID:       u.ID,
-		Token:        accessToken,
-		RefreshToken: refreshToken,
-		ExpiresAt:    time.Now().Add(30 * 24 * time.Hour),
-	}
-	if ip != "" {
-		sess.IPAddress = &ip
-	}
-	if ua != "" {
-		sess.UserAgent = &ua
-	}
-
-	if err := s.sessions.Create(ctx, s.db, sess); err != nil {
-		return nil, err
-	}
-
-	return &response.Auth{
-		AccessToken:  accessToken,
-		RefreshToken: refreshToken,
-		TokenType:    "Bearer",
-		User:         toUserResponse(u),
-	}, nil
-}
-
-// ============================================================
-// userService
-// ============================================================
-
-type userService struct {
-	db    *sqlx.DB
-	users repository.UserRepository
-}
-
-func NewUserService(db *sqlx.DB, users repository.UserRepository) UserService {
-	return &userService{db: db, users: users}
-}
-
-func (s *userService) GetByID(ctx context.Context, id, tenantID string) (*entity.User, error) {
-	u, err := s.users.FindByID(ctx, s.db, id, tenantID)
-	if err != nil {
-		if errors.Is(err, repository.ErrNotFound) {
-			return nil, pkgresponse.NewAppError(pkgresponse.CodeNotFound, "user not found")
-		}
-		return nil, err
-	}
-	return u, nil
-}
-
-func (s *userService) List(ctx context.Context, tenantID string, page, perPage int) ([]entity.User, error) {
-	if perPage <= 0 {
-		perPage = defaultPageSize
-	}
-	if perPage > maxPageSize {
-		perPage = maxPageSize
-	}
-	if page <= 0 {
-		page = 1
-	}
-	return s.users.List(ctx, s.db, tenantID, perPage, (page-1)*perPage)
-}
-
-func (s *userService) Update(ctx context.Context, id, tenantID string, req request.UpdateUser) (*entity.User, error) {
-	u := &entity.User{ID: id, TenantID: tenantID, FirstName: req.FirstName, LastName: req.LastName, Phone: req.Phone}
-	if err := s.users.Update(ctx, s.db, u); err != nil {
-		if errors.Is(err, repository.ErrNotFound) {
-			return nil, pkgresponse.NewAppError(pkgresponse.CodeNotFound, "user not found")
-		}
-		return nil, err
-	}
-	return s.users.FindByID(ctx, s.db, id, tenantID)
-}
-
-func (s *userService) Delete(ctx context.Context, id, tenantID string) error {
-	if err := s.users.Delete(ctx, s.db, id, tenantID); err != nil {
-		if errors.Is(err, repository.ErrNotFound) {
-			return pkgresponse.NewAppError(pkgresponse.CodeNotFound, "user not found")
-		}
-		return err
-	}
-	return nil
-}
-
-// ============================================================
-// passwordService
-// ============================================================
-
-type passwordService struct {
-	db       *sqlx.DB
-	users    repository.UserRepository
-	resets   repository.PasswordResetRepository
-}
-
-func NewPasswordService(
-	db *sqlx.DB,
-	users repository.UserRepository,
-	resets repository.PasswordResetRepository,
-) PasswordService {
-	return &passwordService{db: db, users: users, resets: resets}
-}
-
-func (s *passwordService) ForgotPassword(ctx context.Context, tenantID string, req request.ForgotPassword) error {
-	u, err := s.users.FindByEmail(ctx, s.db, req.Email, tenantID)
-	if err != nil {
-		// Return no error even when user not found — prevents email enumeration.
+		// Return success even if email not found — avoid email enumeration
 		return nil
 	}
 
-	token, err := generateSecureToken()
-	if err != nil {
-		return err
-	}
-
+	rawToken, tokenHash := generateResetToken()
 	pr := &entity.PasswordReset{
 		ID:        uuid.NewString(),
 		TenantID:  tenantID,
 		UserID:    u.ID,
-		Token:     token,
-		ExpiresAt: time.Now().Add(passwordResetTTL),
+		TokenHash: tokenHash,
+		ExpiresAt: time.Now().Add(2 * time.Hour),
 	}
 	if err := s.resets.Create(ctx, s.db, pr); err != nil {
-		return err
+		return fmt.Errorf("authService.ForgotPassword: create reset: %w", err)
 	}
 
-	// TODO: enqueue email job (notification module, Phase 5)
+	// TODO: send email with rawToken
+	// For now: log the token so devs can test manually
+	_ = rawToken
+	fmt.Printf("[DEV] Password reset token for %s: %s\n", req.Email, rawToken)
+
 	return nil
 }
 
-func (s *passwordService) ResetPassword(ctx context.Context, tenantID string, req request.ResetPassword) error {
-	pr, err := s.resets.FindByToken(ctx, s.db, req.Token)
+func (s *authService) ResetPassword(ctx context.Context, req request.ResetPassword) error {
+	tokenHash := hashToken(req.Token)
+	pr, err := s.resets.FindByTokenHash(ctx, s.db, tokenHash)
 	if err != nil {
-		return pkgresponse.NewAppError(pkgresponse.CodeNotFound, "invalid or expired reset token")
+		return pkgresp.NewAppError(pkgresp.CodeUnauthorized, "token reset tidak valid atau sudah digunakan")
 	}
 
 	hash, err := password.Hash(req.Password)
 	if err != nil {
-		return err
+		return fmt.Errorf("authService.ResetPassword: hash: %w", err)
 	}
 
 	if err := s.users.UpdatePassword(ctx, s.db, pr.UserID, hash); err != nil {
-		return err
+		return fmt.Errorf("authService.ResetPassword: update: %w", err)
 	}
 
-	return s.resets.Consume(ctx, s.db, pr.ID)
+	return s.resets.MarkUsed(ctx, s.db, pr.ID)
 }
 
-// ============================================================
-// helpers
-// ============================================================
+func (s *authService) ChangePassword(ctx context.Context, userID, tenantID string, req request.ChangePassword) error {
+	u, err := s.users.FindByID(ctx, s.db, userID)
+	if err != nil {
+		return pkgresp.NewAppError(pkgresp.CodeNotFound, "user tidak ditemukan")
+	}
+	if u.PasswordHash == nil {
+		return pkgresp.NewAppError(pkgresp.CodeValidation, "akun tidak memiliki password")
+	}
+	if err := password.Verify(*u.PasswordHash, req.CurrentPassword); err != nil {
+		return pkgresp.NewAppError(pkgresp.CodeUnauthorized, "password saat ini salah")
+	}
 
-func generateSecureToken() (string, error) {
+	hash, err := password.Hash(req.NewPassword)
+	if err != nil {
+		return fmt.Errorf("authService.ChangePassword: hash: %w", err)
+	}
+	return s.users.UpdatePassword(ctx, s.db, userID, hash)
+}
+
+// ---- helpers ----
+
+func (s *authService) issueTokens(ctx context.Context, u *entity.User, userAgent, ip string) (*response.AuthTokens, error) {
+	fmt.Println("ISSUE TOKEN START")
+	access, err := issueToken(s.jwt, "IssueAccess", u.ID, u.TenantID, u.Email)
+	if err != nil {
+		fmt.Println("ACCESS TOKEN ERROR:", err)
+		return nil, fmt.Errorf("authService.issueTokens: access: %w", err)
+	}
+
+	fmt.Println("ACCESS TOKEN OK")
+
+	refresh, err := issueToken(s.jwt, "IssueRefresh", u.ID, u.TenantID, u.Email)
+	if err != nil {
+		fmt.Println("REFRESH TOKEN ERROR:", err)
+		return nil, fmt.Errorf("authService.issueTokens: refresh: %w", err)
+	}
+
+	fmt.Println("REFRESH TOKEN OK")
+
+	// Persist refresh token
+	session := &entity.UserSession{
+		ID:           uuid.NewString(),
+		TenantID:     u.TenantID,
+		UserID:       u.ID,
+		RefreshToken: refresh,
+		ExpiresAt:    time.Now().Add(30 * 24 * time.Hour),
+	}
+	if userAgent != "" {
+		session.UserAgent = &userAgent
+	}
+	if ip != "" {
+		session.IPAddress = &ip
+	}
+	if err := s.sessions.Create(ctx, s.db, session); err != nil {
+		fmt.Println("SESSION CREATE ERROR:", err)
+		return nil, fmt.Errorf("authService.issueTokens: session: %w", err)
+	}
+
+	fmt.Println("SESSION CREATED")
+
+	return &response.AuthTokens{
+		AccessToken:  access,
+		RefreshToken: refresh,
+		ExpiresIn:    3600,
+		User:         *toUserInfo(u),
+	}, nil
+}
+
+func toUserInfo(u *entity.User) *response.UserInfo {
+	return &response.UserInfo{
+		ID:        u.ID,
+		TenantID:  u.TenantID,
+		Username:  u.Username,
+		Email:     u.Email,
+		FirstName: u.FirstName,
+		LastName:  u.LastName,
+	}
+}
+
+func generateResetToken() (raw, hashed string) {
 	b := make([]byte, 32)
-	if _, err := rand.Read(b); err != nil {
-		return "", err
-	}
-	return hex.EncodeToString(b), nil
+	_, _ = rand.Read(b)
+	raw = hex.EncodeToString(b)
+	return raw, hashToken(raw)
 }
 
-func toUserResponse(u *entity.User) response.User {
-	return response.User{
-		ID:          u.ID,
-		TenantID:    u.TenantID,
-		Email:       u.Email,
-		FirstName:   u.FirstName,
-		LastName:    u.LastName,
-		Phone:       u.Phone,
-		AvatarURL:   u.AvatarURL,
-		IsActive:    u.IsActive,
-		LastLoginAt: u.LastLoginAt,
-		Status:      u.Status,
-		CreatedAt:   u.CreatedAt,
-		UpdatedAt:   u.UpdatedAt,
+func hashToken(raw string) string {
+	h := sha256.Sum256([]byte(raw))
+	return hex.EncodeToString(h[:])
+}
+
+func issueToken(jwtService any, methodName, userID, tenantID, email string) (string, error) {
+	if jwtService == nil {
+		return "", errors.New("jwt service is nil")
 	}
+
+	method := reflect.ValueOf(jwtService).MethodByName(methodName)
+	if !method.IsValid() || method.Type().NumIn() != 3 {
+		return "", fmt.Errorf("jwt method %s unavailable", methodName)
+	}
+
+	results := method.Call([]reflect.Value{
+		reflect.ValueOf(userID),
+		reflect.ValueOf(tenantID),
+		reflect.ValueOf(email),
+	})
+	if len(results) != 2 || results[0].Kind() != reflect.String {
+		return "", fmt.Errorf("jwt method %s returned an invalid result", methodName)
+	}
+	if !results[1].IsNil() {
+		if err, ok := results[1].Interface().(error); ok {
+			return "", err
+		}
+		return "", fmt.Errorf("jwt method %s returned an invalid error", methodName)
+	}
+	return results[0].String(), nil
+}
+
+var _ = errors.New // keep import
+
+type refreshClaims struct {
+	UserID    string
+	TokenType string
+}
+
+func parseClaims(jwtService any, token string) (*refreshClaims, error) {
+	if jwtService == nil {
+		return nil, errors.New("jwt service is nil")
+	}
+
+	value := reflect.ValueOf(jwtService)
+	for _, methodName := range []string{"ParseClaims", "ParseToken", "Parse"} {
+		method := value.MethodByName(methodName)
+		if !method.IsValid() || method.Type().NumIn() != 1 {
+			continue
+		}
+
+		result := method.Call([]reflect.Value{reflect.ValueOf(token)})
+		if len(result) < 2 || !result[1].IsNil() {
+			return nil, errors.New("invalid token")
+		}
+
+		claims := result[0]
+		if claims.Kind() == reflect.Ptr {
+			if claims.IsNil() {
+				return nil, errors.New("invalid token claims")
+			}
+			claims = claims.Elem()
+		}
+		if claims.Kind() != reflect.Struct {
+			return nil, errors.New("invalid token claims")
+		}
+
+		field := func(name string) string {
+			v := claims.FieldByName(name)
+			if v.IsValid() && v.Kind() == reflect.String {
+				return v.String()
+			}
+			return ""
+		}
+		return &refreshClaims{UserID: field("UserID"), TokenType: field("TokenType")}, nil
+	}
+
+	return nil, errors.New("jwt parser unavailable")
 }

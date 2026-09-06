@@ -1,39 +1,34 @@
 package request
 
-// Register is the input for creating a new user account.
-type Register struct {
-	Email     string  `json:"email" validate:"required,email,max=255"`
-	Password  string  `json:"password" validate:"required,min=8,max=72"`
-	FirstName string  `json:"first_name" validate:"required,max=100"`
-	LastName  string  `json:"last_name" validate:"required,max=100"`
-	Phone     *string `json:"phone" validate:"omitempty,max=30"`
-}
-
-// Login is the input for authenticating an existing user.
+// Login authenticates a tenant user.
 type Login struct {
 	Email    string `json:"email" validate:"required,email"`
-	Password string `json:"password" validate:"required"`
+	Password string `json:"password" validate:"required,min=8"`
 }
 
-// RefreshToken is the input for rotating an access token.
-type RefreshToken struct {
+// Refresh exchanges a refresh token for a new access token.
+type Refresh struct {
 	RefreshToken string `json:"refresh_token" validate:"required"`
 }
 
-// ForgotPassword initiates the password-reset flow.
+// Logout revokes a refresh token.
+type Logout struct {
+	RefreshToken string `json:"refresh_token" validate:"required"`
+}
+
+// ForgotPassword initiates the reset flow.
 type ForgotPassword struct {
 	Email string `json:"email" validate:"required,email"`
 }
 
-// ResetPassword completes the password-reset flow.
+// ResetPassword completes the reset flow.
 type ResetPassword struct {
 	Token    string `json:"token" validate:"required"`
-	Password string `json:"password" validate:"required,min=8,max=72"`
+	Password string `json:"password" validate:"required,min=8"`
 }
 
-// UpdateUser is the input for updating a user's profile.
-type UpdateUser struct {
-	FirstName *string `json:"first_name" validate:"omitempty,max=100"`
-	LastName  *string `json:"last_name" validate:"omitempty,max=100"`
-	Phone     *string `json:"phone" validate:"omitempty,max=30"`
+// ChangePassword changes password for authenticated user.
+type ChangePassword struct {
+	CurrentPassword string `json:"current_password" validate:"required"`
+	NewPassword     string `json:"new_password" validate:"required,min=8"`
 }

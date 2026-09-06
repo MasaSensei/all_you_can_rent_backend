@@ -1,0 +1,2 @@
+ALTER TABLE user_sessions
+ADD COLUMN token VARCHAR(500);

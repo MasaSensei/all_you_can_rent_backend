@@ -267,30 +267,52 @@ func hashToken(raw string) string {
 	return hex.EncodeToString(h[:])
 }
 
-func issueToken(jwtService any, methodName, userID, tenantID, email string) (string, error) {
+func issueToken(
+	jwtService any,
+	methodName,
+	userID,
+	tenantID,
+	email string,
+) (string, error) {
+
 	if jwtService == nil {
 		return "", errors.New("jwt service is nil")
 	}
 
 	method := reflect.ValueOf(jwtService).MethodByName(methodName)
-	if !method.IsValid() || method.Type().NumIn() != 3 {
-		return "", fmt.Errorf("jwt method %s unavailable", methodName)
+
+	if !method.IsValid() || method.Type().NumIn() != 4 {
+		return "", fmt.Errorf(
+			"jwt method %s unavailable (numIn=%d)",
+			methodName,
+			method.Type().NumIn(),
+		)
 	}
 
 	results := method.Call([]reflect.Value{
 		reflect.ValueOf(userID),
 		reflect.ValueOf(tenantID),
 		reflect.ValueOf(email),
+		reflect.ValueOf([]string{}), // roles
 	})
+
 	if len(results) != 2 || results[0].Kind() != reflect.String {
-		return "", fmt.Errorf("jwt method %s returned an invalid result", methodName)
+		return "", fmt.Errorf(
+			"jwt method %s returned an invalid result",
+			methodName,
+		)
 	}
+
 	if !results[1].IsNil() {
 		if err, ok := results[1].Interface().(error); ok {
 			return "", err
 		}
-		return "", fmt.Errorf("jwt method %s returned an invalid error", methodName)
+		return "", fmt.Errorf(
+			"jwt method %s returned an invalid error",
+			methodName,
+		)
 	}
+
 	return results[0].String(), nil
 }
 
